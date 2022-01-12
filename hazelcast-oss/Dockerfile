@@ -1,7 +1,7 @@
 FROM alpine:3.15.0
 
 # Versions of Hazelcast
-ARG HZ_VERSION=5.0.2
+ARG HZ_VERSION=5.1-SNAPSHOT
 # Variant - empty for full, "slim" for slim
 ARG HZ_VARIANT=""
 
@@ -23,14 +23,16 @@ ENV HZ_HOME="${HZ_HOME}" \
 # Expose port
 EXPOSE 5701
 
-COPY *.jar get-hz-dist-zip.sh ${HZ_HOME}/
+COPY *.jar hazelcast-*.zip ${HZ_HOME}/
 
 # Install
 RUN echo "Installing new APK packages" \
     && apk add --no-cache openjdk11-jre-headless bash curl libxml2-utils zip unzip \
     && echo "Downloading Hazelcast${HZ_VARIANT} distribution zip..." \
-    && HAZELCAST_ZIP_URL=$(${HZ_HOME}/get-hz-dist-zip.sh) \
-    && curl -sf -L ${HAZELCAST_ZIP_URL} --output ${HZ_HOME}/hazelcast-distribution.zip \
+    && if [[ ! -f ${HZ_HOME}/hazelcast-distribution.zip ]]; then \
+        HAZELCAST_ZIP_URL=$(${HZ_HOME}/get-hz-dist-zip.sh); \
+        curl -sf -L ${HAZELCAST_ZIP_URL} --output ${HZ_HOME}/hazelcast-distribution.zip; \
+       fi \
     && unzip -qq ${HZ_HOME}/hazelcast-distribution.zip 'hazelcast-*/**' -d ${HZ_HOME}/tmp/ \
     && mv ${HZ_HOME}/tmp/*/* ${HZ_HOME}/ \
     && echo "Setting Pardot ID to 'docker'" \
@@ -49,4 +51,4 @@ RUN addgroup -S hazelcast && adduser -S hazelcast -G hazelcast
 USER hazelcast
 
 # Start Hazelcast server
-CMD ["hz-start"]
+CMD ["hazelcast-start"]
